@@ -162,3 +162,48 @@ GROUP BY equipamento.nomeEquipamento
 HAVING COUNT(aluguelequipamentos.idAluguel) < 5
 ORDER BY qtdAlugueis;
 
+/**/
+ 
+DELIMITER //
+ 
+CREATE PROCEDURE sp_realizar_aluguel(
+    IN p_idCliente        INT,
+    IN p_idFuncionario    INT,
+    IN p_idEquipamento    INT,
+    IN p_qtd              INT,
+    IN p_dataRetirada     DATETIME
+)
+BEGIN
+ 
+    INSERT INTO aluguel
+        (idCliente, idFuncionario, dataHoraRetirada, valorAPagar, valorPago, pago)
+    VALUES
+        (p_idCliente, p_idFuncionario, p_dataRetirada, 0.00, 0.00, 0);
+ 
+    SET @idAluguel = LAST_INSERT_ID();
+ 
+    INSERT INTO aluguelequipamento
+        (idAluguel, idEquipamento, valorUnitario, qtd, valorItem)
+    SELECT
+        @idAluguel, idEquipamento, valorHora, p_qtd, (valorHora * p_qtd)
+    FROM equipamento
+    WHERE idEquipamento = p_idEquipamento;
+ 
+    UPDATE equipamento
+    SET qtd = qtd - p_qtd
+    WHERE idEquipamento = p_idEquipamento;
+ 
+    UPDATE aluguel
+    SET valorAPagar = (
+        SELECT SUM(valorItem)
+        FROM aluguelequipamento
+        WHERE idAluguel = @idAluguel
+    )
+    WHERE idAluguel = @idAluguel;
+ 
+END // 
+DELIMITER ;
+
+CALL sp_realizar_aluguel(1,1,10,5,NOW())
+
+SELECT * FROM	aluguel
