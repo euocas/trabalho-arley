@@ -206,4 +206,19 @@ DELIMITER ;
 
 CALL sp_realizar_aluguel(1,1,10,5,NOW())
 
-SELECT * FROM	aluguel
+/*TRANSACTION*/
+
+START TRANSACTION;
+INSERT INTO aluguel (idCliente,idFuncionario, dataHoraRetirada)
+VALUES(7,1,NOW());
+INSERT INTO aluguelequipamento
+(idEquipamento,idAluguel,valorItem, valorUnitario, qtd)
+VALUES (5,LAST_INSERT_ID(),4.5,1.5,3);
+UPDATE equipamento
+SET qtd = qtd - 3
+WHERE idEquipamento=5;
+
+COMMIT;
+ROLLBACK;
+
+SELECT * FROM equipamento
